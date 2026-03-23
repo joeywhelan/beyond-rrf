@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond Rank Fusion — Elasticsearch Retrievers</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
+<style>
+  :root {
+    --elastic-blue: #0077CC;
+    --elastic-teal: #00BFB3;
+    --elastic-navy: #1B1B3A;
+    --elastic-dark: #131525;
+    --elastic-gray: #98A2B3;
+    --elastic-white: #FFFFFF;
+  }
+  .reveal {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  .reveal .slides section {
+    background: var(--elastic-navy);
+    color: var(--elastic-white);
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .reveal .slides section > * {
+    flex-shrink: 0;
+  }
+  .reveal .slides section > img {
+    flex-shrink: 1;
+    min-height: 0;
+    object-fit: contain;
+    align-self: center;
+  }
+  .reveal h1, .reveal h2, .reveal h3 {
+    color: var(--elastic-white);
+    text-transform: none;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .reveal h2 {
+    font-size: 1.6em;
+    margin-bottom: 0.6em;
+  }
+  .reveal h3 {
+    font-size: 1.2em;
+    color: var(--elastic-teal);
+  }
+  .reveal p, .reveal li {
+    font-size: 0.7em;
+    line-height: 1.5;
+    color: #D0D5DD;
+  }
+  .reveal ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .reveal ul li::before {
+    content: "▸ ";
+    color: var(--elastic-teal);
+    font-weight: bold;
+  }
+  .reveal strong {
+    color: var(--elastic-teal);
+  }
+  .reveal em {
+    color: var(--elastic-blue);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .reveal .accent {
+    color: var(--elastic-teal);
+  }
+  .reveal .blue {
+    color: var(--elastic-blue);
+  }
+  .reveal img.scenario {
+    max-width: 90%;
+    border: 2px solid rgba(0,119,204,0.3);
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .reveal img.arch {
+    max-width: 85%;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .reveal table {
+    font-size: 0.6em;
+    margin: 0.5em auto;
+    border-collapse: collapse;
+    width: auto;
+  }
+  .reveal table th {
+    background: var(--elastic-blue);
+    color: var(--elastic-white);
+    padding: 0.5em 1em;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .reveal table td {
+    padding: 0.4em 1em;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #D0D5DD;
+  }
+  .reveal table tr:nth-child(even) {
+    background: rgba(0,119,204,0.08);
+  }
+  .reveal .formula {
+    background: var(--elastic-dark);
+    border-left: 4px solid var(--elastic-teal);
+    padding: 0.6em 1em;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.75em;
+    color: var(--elastic-teal);
+    display: inline-block;
+    border-radius: 4px;
+    margin: 0.5em 0;
+  }
+  .reveal .subtitle {
+    color: var(--elastic-gray);
+    font-size: 0.65em;
+    margin-top: 0.3em;
+  }
+  .reveal .title-slide h1 {
+    font-size: 1.8em;
+    color: var(--elastic-white);
+    margin-bottom: 0.1em;
+  }
+  .reveal .findings li {
+    font-size: 0.6em;
+    margin-bottom: 0.3em;
+  }
+  .reveal .two-col {
+    display: flex;
+    gap: 2em;
+    align-items: flex-start;
+    flex-shrink: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .reveal .two-col > div {
+    flex: 1;
+  }
+  .reveal .highlight-box {
+    background: rgba(0,191,179,0.1);
+    border: 1px solid var(--elastic-teal);
+    border-radius: 8px;
+    padding: 0.5em 0.8em;
+    margin: 0.4em 0;
+    font-size: 0.65em;
+    color: var(--elastic-white);
+  }
+  .reveal .slide-number {
+    color: var(--elastic-gray);
+    font-size: 12px;
+  }
+  .reveal pre code {
+    font-size: 0.85em;
+    background: var(--elastic-dark);
+    border-radius: 6px;
+    padding: 0.8em;
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- Slide 1: Title -->
+<section class="title-slide">
+  <img src="cover600x322.png" alt="cover" class="scenario" style="border:none;">
+  <h1>Beyond Rank Fusion</h1>
+  <p style="font-size:0.9em; color:var(--elastic-teal); margin-top:0;">A Practical Guide to Elasticsearch Retrievers</p>
+  <p class="subtitle">Hybrid search fusion strategies for real-world relevance</p>
+  <aside class="notes">Set the stage: hybrid search sounds like a solved problem, but the choice of fusion strategy has dramatic effects on result quality.</aside>
+</section>
+
+<!-- Slide 2: Agenda -->
+<section>
+  <h2>What We'll Cover</h2>
+  <ul>
+    <li class="fragment">Lexical vs semantic search — why neither alone is enough</li>
+    <li class="fragment"><strong>RRF Retriever</strong> — rank-based fusion (weighted & unweighted)</li>
+    <li class="fragment"><strong>Linear Retriever</strong> — score-based fusion with MinMax normalization</li>
+    <li class="fragment"><strong>Rescorer Retriever</strong> — injecting business logic after fusion</li>
+    <li class="fragment">Decision framework — when to use each approach</li>
+  </ul>
+  <aside class="notes">Progressive journey: each retriever builds on the limitations of the previous one.</aside>
+</section>
+
+<!-- Slide 3: Architecture -->
+<section>
+  <h2>Architecture</h2>
+  <img src="arch.png" alt="Architecture diagram" class="arch">
+  <ul style="font-size:0.55em; margin-top:0.4em;">
+    <li>Elastic Serverless provisioned via Terraform</li>
+    <li>Product catalog indexed with dual fields — BM25 text + Jina v5 semantic embeddings</li>
+    <li>Hybrid retrieval scenarios demonstrate RRF, Linear, and Rescorer strategies</li>
+  </ul>
+  <aside class="notes">Elastic Serverless handles infrastructure. Jina Embeddings v5 via Elastic Inference Service generates vectors at ingest time — no external embedding pipeline needed.</aside>
+</section>
+
+<!-- Slide 4: Dataset -->
+<section>
+  <h2>The Dataset</h2>
+  <div class="two-col">
+    <div>
+      <h3>80 Hand Tools</h3>
+      <ul>
+        <li>8 categories — hammers, screwdrivers, chisels, clamps, saws, measuring, wrenches, drills</li>
+        <li>Each product has <strong>business signals</strong>: avg_rating, units_sold_30d, in_stock</li>
+        <li>Realistic product descriptions with natural language variation</li>
+      </ul>
+    </div>
+    <div>
+      <h3>"Trap" Products</h3>
+      <ul>
+        <li><strong>Keyword-stuffed</strong> items that game BM25 and semantic search</li>
+        <li><strong>Semantically rich</strong> items invisible to keyword matching</li>
+        <li><strong>High-relevance / low-business-signal</strong> items to test rescoring</li>
+      </ul>
+      <div class="highlight-box">Traps are deliberately contrived to expose each retriever's blind spots</div>
+    </div>
+  </div>
+  <aside class="notes">The trap products are the key teaching tool — they expose limitations you wouldn't see with a clean, well-behaved dataset.</aside>
+</section>
+
+<!-- Slide 5: Baseline -->
+<section>
+  <h2>Baseline: Lexical vs Semantic</h2>
+  <p>Query: <em>"versatile fastening tool for woodworking joints"</em></p>
+  <img src="scenario-1.png" alt="BM25 vs Semantic results" class="scenario">
+  <div class="two-col" style="font-size:0.6em; margin-top:0.4em;">
+    <div>
+      <h3>BM25 (Lexical)</h3>
+      <p>Rewards exact keyword overlap — "fastening" and "woodworking" score well</p>
+    </div>
+    <div>
+      <h3>Semantic</h3>
+      <p>Surfaces conceptually relevant products even without query keywords</p>
+    </div>
+  </div>
+  <aside class="notes">Neither approach alone gives the best results. BM25 misses conceptual matches; semantic misses exact-term precision. This motivates hybrid fusion.</aside>
+</section>
+
+<!-- Slide 6: How RRF Works -->
+<section>
+  <h2>RRF Retriever — Rank-Based Fusion</h2>
+  <p style="font-size:0.75em;">Merges ranked lists from multiple retrievers using <strong>rank positions only</strong></p>
+  <div class="formula">score = &Sigma; &nbsp; 1 / (rank<sub>i</sub> + k)</div>
+  <div class="two-col" style="margin-top:0.6em;">
+    <div>
+      <h3>How It Works</h3>
+      <ul>
+        <li>Each retriever returns a ranked list</li>
+        <li>RRF converts ranks to scores using a constant <strong>k</strong> (default 60)</li>
+        <li>Scores are summed across retrievers</li>
+        <li>Weights can boost one retriever's contribution</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Key Limitation</h3>
+      <ul>
+        <li>A weak #1 and a dominant #1 get the <strong>same score</strong></li>
+        <li>Score magnitude is invisible — only position matters</li>
+        <li>Cannot distinguish genuine relevance from keyword gaming</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">RRF is the simplest fusion method and a great starting point. But flattening scores to ranks loses critical information.</aside>
+</section>
+
+<!-- Slide 7: RRF Results -->
+<section>
+  <h2>RRF Results</h2>
+  <p>Query: <em>"precision screwdriver for electronics repair"</em></p>
+  <img src="scenario-2.png" alt="RRF comparison" class="scenario">
+  <ul class="findings">
+    <li><strong>Trap A1</strong> (keyword-stuffed "PrecisionDrive") holds #1 across all three RRF variants</li>
+    <li><strong>Trap A2</strong> (semantically rich "Vessel Impacta") only surfaces when semantic is boosted — dead last at #7</li>
+    <li><strong>Wiha</strong> (genuinely relevant) is stuck at #2 — can never overtake the keyword-stuffed item</li>
+  </ul>
+  <p class="highlight-box">Takeaway: Hybrid search does not automatically neutralize keyword stuffing</p>
+  <aside class="notes">This is the core problem: RRF treats all #1 ranks equally. A keyword-stuffed product that games both legs is unbeatable through weight tuning alone.</aside>
+</section>
+
+<!-- Slide 8: How Linear Works -->
+<section>
+  <h2>Linear Retriever — Score-Based Fusion</h2>
+  <p style="font-size:0.75em;">Combines actual <strong>score values</strong> instead of ranks, with MinMax normalization</p>
+  <div class="two-col" style="margin-top:0.5em;">
+    <div>
+      <h3>How It Works</h3>
+      <ul>
+        <li>Scores from each retriever are normalized to <strong>0–1</strong> using MinMax</li>
+        <li>Normalized scores are multiplied by configurable weights</li>
+        <li>Weighted scores are summed for final ranking</li>
+      </ul>
+      <div class="formula" style="font-size:0.7em;">score = w₁ · norm(BM25) + w₂ · norm(semantic)</div>
+    </div>
+    <div>
+      <h3>Why It Matters</h3>
+      <ul>
+        <li>A product scoring 52 on BM25 vs next-best at 11 — <strong>Linear sees that 5x gap</strong></li>
+        <li>RRF flattens it to rank 1 vs rank 2</li>
+        <li>Weight tuning has <strong>real impact</strong> — shifting BM25↔semantic changes which products surface</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">Linear is the step up from RRF: it preserves the magnitude of relevance differences. The weight dial now has real teeth.</aside>
+</section>
+
+<!-- Slide 9: Linear Results -->
+<section>
+  <h2>Linear Results</h2>
+  <p>Query: <em>"mortise chisel for hand-cut joinery"</em></p>
+  <img src="scenario-3.png" alt="Linear comparison" class="scenario">
+  <ul class="findings">
+    <li><strong>Mortise Chisel Heavy-Duty</strong> scores 1.0 in both Linear columns — MinMax ceiling reflects true dominance</li>
+    <li><strong>Two Cherries Pigsticker</strong> appears in Linear but not RRF — score awareness surfaces it</li>
+    <li>Shifting BM25-heavy → semantic-heavy <strong>collapses</strong> Pigsticker's score by half — exposing keyword-only relevance</li>
+  </ul>
+  <p class="highlight-box">Takeaway: Linear sees score magnitude, but has no awareness of business signals</p>
+  <aside class="notes">Linear solves the magnitude problem but still operates purely on text relevance scores. It doesn't know about ratings, sales velocity, or stock status.</aside>
+</section>
+
+<!-- Slide 10: How Rescorer Works -->
+<section>
+  <h2>Rescorer Retriever — Business Logic Layer</h2>
+  <p style="font-size:0.75em;">Wraps a first-stage retriever and <strong>re-ranks</strong> results using business signals</p>
+  <div class="two-col" style="margin-top:0.5em;">
+    <div>
+      <h3>How It Works</h3>
+      <ul>
+        <li>First stage (Linear) retrieves candidates based on text relevance</li>
+        <li>Rescorer applies a <strong>script score</strong> that blends relevance with business signals</li>
+        <li>Signals can include: ratings, sales velocity, stock status, margin, recency</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Key Capability</h3>
+      <ul>
+        <li>A single boolean (<strong>in_stock: false</strong>) can override all relevance and popularity signals</li>
+        <li>Low-relevance products with strong business signals can be <strong>promoted</strong></li>
+        <li>High-relevance products with poor signals can be <strong>demoted</strong></li>
+      </ul>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.5em;">The Rescorer doesn't change what gets <em style="color:var(--elastic-teal);">retrieved</em> — it changes what gets <em style="color:var(--elastic-teal);">promoted</em></div>
+  <aside class="notes">This is the most powerful retriever in the stack. It separates retrieval (finding candidates) from ranking (ordering for the user).</aside>
+</section>
+
+<!-- Slide 11: Rescorer Results -->
+<section>
+  <h2>Rescorer Results</h2>
+  <p>Query: <em>"reliable claw hammer for general carpentry"</em></p>
+  <img src="scenario-4.png" alt="Rescorer comparison" class="scenario">
+  <ul class="findings">
+    <li><strong>Reliable Claw Hammer</strong> — Linear #1 (0.98) → drops out entirely. Rating 1.9, only 14 units sold</li>
+    <li><strong>Estwing E3-16C</strong> — Linear #7 (0.07) → Rescorer #1 (14.88). Rating 4.9, 1840 units sold</li>
+    <li><strong>Lie-Nielsen</strong> — Rescorer #2 (11.87) → disappears with stock filter. <strong>in_stock: false</strong></li>
+  </ul>
+  <p class="highlight-box">Takeaway: One boolean field overrides all relevance and popularity signals</p>
+  <aside class="notes">The Lie-Nielsen row is the key demo: a product can win on relevance AND business signals, yet be excluded by a single boolean. This is business logic that neither RRF nor Linear can express.</aside>
+</section>
+
+<!-- Slide 12: Decision Matrix -->
+<section>
+  <h2>When to Use Each Retriever</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Retriever</th>
+        <th>Fusion Method</th>
+        <th>Score Magnitude?</th>
+        <th>Weights?</th>
+        <th>Business Logic?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="fragment">
+        <td>RRF (unweighted)</td>
+        <td>Rank-based</td>
+        <td>No</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+      <tr class="fragment">
+        <td>RRF (weighted)</td>
+        <td>Rank-based</td>
+        <td>No</td>
+        <td>Yes</td>
+        <td>No</td>
+      </tr>
+      <tr class="fragment">
+        <td>Linear + MinMax</td>
+        <td>Score-based</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>No</td>
+      </tr>
+      <tr class="fragment">
+        <td><strong>Rescorer</strong></td>
+        <td>Score-based + rerank</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td><strong style="color:var(--elastic-teal);">Yes</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <ul style="margin-top:0.6em; font-size:0.55em;">
+    <li><strong>RRF</strong> — zero-tuning starting point; good when you don't know which signal matters more</li>
+    <li><strong>Linear</strong> — when score magnitude matters; products that are dramatically more relevant should rank dramatically higher</li>
+    <li><strong>Rescorer</strong> — when business logic must influence final rankings (popularity, stock, margin)</li>
+  </ul>
+  <aside class="notes">This is the slide to leave up during Q&A. Each retriever is a strict superset of the one above in terms of capabilities.</aside>
+</section>
+
+<!-- Slide 13: Key Takeaways -->
+<section>
+  <h2>Key Takeaways</h2>
+  <ul>
+    <li class="fragment"><strong>Hybrid search ≠ automatic quality</strong> — rank fusion alone does not neutralize keyword stuffing or gaming</li>
+    <li class="fragment"><strong>Score magnitude matters</strong> — Linear's score-based fusion preserves relevance gaps that RRF flattens into rank positions</li>
+    <li class="fragment"><strong>Business logic is the final layer</strong> — the Rescorer separates retrieval from ranking, letting business constraints override pure text relevance</li>
+    <li class="fragment"><strong>Each retriever builds on the last</strong> — start with RRF, graduate to Linear when you need precision, add Rescorer when business signals matter</li>
+  </ul>
+  <aside class="notes">The progressive arc is the key message: you don't pick one retriever forever. You start simple and add capability as your requirements demand it.</aside>
+</section>
+
+<!-- Slide 14: Resources -->
+<section>
+  <h2>Resources</h2>
+  <ul style="font-size:0.65em;">
+    <li><strong>Source Code</strong> — github.com/joeywhelan/beyond-rrf</li>
+    <li><strong>RRF Retriever</strong> — elastic.co/docs/reference/elasticsearch/rest-apis/retrievers/rrf-retriever</li>
+    <li><strong>Linear Retriever</strong> — elastic.co/docs/reference/elasticsearch/rest-apis/retrievers/linear-retriever</li>
+    <li><strong>Rescorer Retriever</strong> — elastic.co/docs/reference/elasticsearch/rest-apis/retrievers/rescorer-retriever</li>
+    <li><strong>Elastic Serverless</strong> — elastic.co/cloud/serverless</li>
+  </ul>
+  <aside class="notes">All code is in the GitHub repo — the notebook is fully runnable with Terraform provisioning included.</aside>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    width: 1280,
+    height: 720,
+    margin: 0.05,
+    transition: 'slide',
+    backgroundTransition: 'fade',
+  });
+</script>
+</body>
+</html>
