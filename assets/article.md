@@ -3,15 +3,12 @@
 # Beyond Rank Fusion: A Practical Guide to Elasticsearch Retrievers
 *Demonstration of Elastic hybrid fusion capabilities*
 
-Most teams adopt hybrid search and stop at RRF — assuming that combining lexical and semantic results automatically produces high-quality rankings. In practice, the choice of fusion strategy has a dramatic effect on what surfaces first and what gets buried. Keyword-stuffed products can game rank-based fusion, genuine relevance gaps get flattened into meaningless rank positions, and business-critical signals like stock status are invisible to every retriever that operates on text alone.
-
 This article walks through four Elasticsearch retriever strategies — from the simplest rank-based fusion to a full business-logic rescoring pipeline — showing where each excels, where each falls short, and when to graduate to the next.
 
 ---
 
 ## What This Article Covers
 
-- Provisioning an [Elastic Serverless](https://www.elastic.co/cloud/serverless) project via Terraform
 - Creating an Elastic index based on a synthetic product catalog of hand tools
 - Use of weighted and unweighted [RRF retriever](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/retrievers/rrf-retriever)
 - Use of the [Linear retriever](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/retrievers/linear-retriever) to merge results based on normalized scores
